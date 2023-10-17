@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        /* Estilos CSS */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        @keyframes blink {
+            0% {
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+            }
+        }
+
+        .button {
+            /* Estilos existentes... */
+            transform-origin: center;
+            transition: transform 0.2s;
+        }
+
+        .button:hover {
+            transform: rotate(5deg);
+        }
+
+        .message {
+            font-size: 18px;
+            margin-top: 10px;
+            opacity: 0;
+            animation: fade-in 0.5s forwards;
+        }
+
+        @keyframes fade-in {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+
+        .hangman-container {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
+            margin: 20px auto;
+            padding: 20px;
+            position: relative;
+        }
+        h1 {
+            color: #333;
+        }
+        .word {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .letters {
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .letter {
+            display: inline-block;
+            width: 30px;
+            text-align: center;
+            margin: 0 5px;
+        }
+        .input-letter {
+            width: 30px;
+            text-transform: uppercase;
+        }
+        .guesses {
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .message {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+        .button {
+            margin-top: 20px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .hidden {
+            display: none;
+        }
+        .hint-balloon {
+            position: absolute;
+            background-color: #333;
+            color: #fff;
+            border-radius: 5px;
+            padding: 10px;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="hangman-container">
+        <h1>Jogo da Forca - Mulheres que Mudaram o Mundo</h1>
+        <div class="hint-balloon" id="hint-balloon">
+            <p>Dica: </p>
+        </div>
+        <div class="footer">
+            Feito por: Gael Ulm e Anick Ulm
+        </div>
+        <div class="word"></div>
+        <div class="letters"></div>
+        <div class="guesses">Tentativas Restantes: <span id="remaining-guesses">4</span></div>
+        <div class="message"></div>
+        <input type="text" class="input-letter" id="letter-input" maxlength="1" autofocus>
+        <button class="button" id="guess-button" onclick="guessLetter()">Adivinhar</button>
+        <button class="button hidden" id="reset-button" onclick="resetGame()">Reiniciar Jogo</button>
+    </div>
+
+    <script>
+        const womenWhoChangedTheWorld = [
+            { name: "MARIECURIE", hint: "Esta mulher ganhou dois prêmios Nobel em Física e Química." },
+            { name: "ANNEFRANK", hint: "Uma adolescente alemã de origem judaica, vítima do Holocausto; Mais conhecida por seu diário." },
+            { name: "MALALA", hint: "Esta mulher é uma ativista pelos direitos das mulheres e ganhou o Prêmio Nobel da Paz." },
+            { name: "DILMA", hint: "Esta mulher foi a primeira presidente do Brasil." },
+            { name: "MARIADAPENHA", hint: "Esta mulher foi vítima emblemática da violência doméstica, levou um tiro nas costas enquanto dormia." },
+            { name: "DANDARA", hint: "Companheira de Zumbi; Além de dominar técnicas de capoeira, também lutou junto de cerca de 30 mil aquilombados." }
+        ];
+
+        let chosenWoman = {};
+        let guessedWord = [];
+        let remainingGuesses = 4;
+
+        const wordElement = document.querySelector(".word");
+        const lettersElement = document.querySelector(".letters");
+        const remainingGuessesElement = document.getElementById("remaining-guesses");
+        const messageElement = document.querySelector(".message");
+        const guessButton = document.getElementById("guess-button");
+        const resetButton = document.getElementById("reset-button");
+        const hintBalloon = document.getElementById("hint-balloon");
+
+        function startGame() {
+            chosenWoman = womenWhoChangedTheWorld[Math.floor(Math.random() * womenWhoChangedTheWorld.length)];
+            guessedWord = Array(chosenWoman.name.length).fill("_");
+            remainingGuesses = 4;
+            displayWord();
+            displayLetters();
+            remainingGuessesElement.textContent = remainingGuesses;
+            messageElement.textContent = "";
+            document.getElementById("letter-input").value = "";
+            resetButton.classList.add("hidden");
+            guessButton.classList.remove("hidden");
+            hintBalloon.style.opacity = 1;
+            hintBalloon.querySelector("p").textContent = "Dica: " + chosenWoman.hint;
+        }
+
+        function displayWord() {
+            wordElement.textContent = guessedWord.join(" ");
+        }
+
+        function displayLetters() {
+            const letters = guessedWord.map((letter, index) => letter === "_" ? String.fromCharCode(65 + index) : " ");
+            lettersElement.textContent = letters.join(" ");
+        }
+
+        function guessLetter() {
+            hintBalloon.style.opacity = 0; // Oculta o balão de dica ao adivinhar a primeira letra
+            const letterInput = document.getElementById("letter-input").value.toUpperCase();
+
+            if (letterInput.length !== 1 || !/^[A-Z]$/.test(letterInput)) {
+                messageElement.textContent = "Por favor, insira uma única letra maiúscula válida.";
+                return;
+            }
+
+            if (chosenWoman.name.includes(letterInput)) {
+                for (let i = 0; i < chosenWoman.name.length; i++) {
+                    if (chosenWoman.name[i] === letterInput) {
+                        guessedWord[i] = letterInput;
+                    }
+                }
+            } else {
+                remainingGuesses--;
+            }
+
+            displayWord();
+            displayLetters();
+            remainingGuessesElement.textContent = remainingGuesses;
+
+            if (guessedWord.join("") === chosenWoman.name) {
+                messageElement.textContent = "Parabéns! Você venceu!";
+                resetButton.classList.remove("hidden");
+                guessButton.classList.add("hidden");
+            } else if (remainingGuesses === 0) {
+                messageElement.textContent = "Game Over. A palavra era: " + chosenWoman.name;
+                resetButton.classList.remove("hidden");
+                guessButton.classList.add("hidden");
+            }
+
+            document.getElementById("letter-input").value = "";
+        }
+
+        function resetGame() {
+            startGame();
+        }
+
+        // Iniciar o jogo quando a página carregar
+        startGame();
+    </script>
+</body>
+</html>
